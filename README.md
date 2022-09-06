@@ -8,5 +8,5 @@ This script was created mainly to automate the processes needed, such as:
 - split the xiso if its size is bigger than (approx) 4 GB (also, FATX limitation).
 
 ## LICENSE
-- `redump2x` script is licensed as stated inside the script and [LICENSE](LICENSE) file. \
+- `redump2x` script is licensed as stated inside the script and [LICENSE](LICENSE) file.
 - The files inside bin folder has their own licenses and are excluded from the scope of this repo's license.
