@@ -1,5 +1,5 @@
 # redump2x
-`redump2x` is a script to extract the original Xbox's redump archives.
+`redump2x` is a script to "extract" the original Xbox's redump archives.
 
 I was using redump archives to test xiso boot feature from NKPatcher and Cerbios. \
 This script was created mainly to automate the processes needed, such as:
