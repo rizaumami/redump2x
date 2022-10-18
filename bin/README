@@ -1,18 +1,17 @@
 attach.xbe
 ==========
-This is Virtual disc attacher by rmenhal.
+This attacher is taken from https://github.com/Team-Resurgent/Repackinator.
+Unlike the attacher by rmenhal, this attach.xbe not only capable to attach disc
+image but also capable to attach drive and memory card image.
 If combined with NKPatcher or Cerbios this utility will enabled us to boot XISOs
 directly from ogxbox's disk.
-MD5SUM: e658735e0a533d2a9f5dfb60b8334fc7  
-Taken from driveimageutils-v1.0.1 package.
-The license is GPL, so I guess can redistribute the binary with this repo.
-Get it from the usual place.
+MD5SUM: 26364e948ad25311ccde086e0fbd515f
 
 extract-xiso
 ============
 A command line utility to allow the creation, modification, and extraction of
-XISOs. 
-Originally witten by in (in@fishtank.com), and currently maintained and 
+XISOs.
+Originally witten by in (in@fishtank.com), and currently maintained and
 modernized by the XboxDev organization.
 Link: https://github.com/XboxDev/extract-xiso
 License is custom but similar to GPL, so I guess can redistribute the binary too.
@@ -20,6 +19,6 @@ The binaries included are my personal build; (1) extract-xiso is 32 bit, and (2)
 extract-xiso_x64 is 64 bit build.
 See https://github.com/XboxDev/extract-xiso/issues/29 as to why the need for two
 binaries (for short, 64 build create problematic xiso).
-MD5SUM: 
-extract-xiso      bdadd5eb93df5da28952511694ea2489  
-extract-xiso_x64  36908428f2ac32a9836079bb9ac7ed21  
+MD5SUM:
+extract-xiso      bdadd5eb93df5da28952511694ea2489
+extract-xiso_x64  36908428f2ac32a9836079bb9ac7ed21
