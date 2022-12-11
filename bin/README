@@ -1,11 +1,12 @@
 attach.xbe
 ==========
-This attacher is taken from https://github.com/Team-Resurgent/Repackinator.
-Unlike the attacher by rmenhal, this attach.xbe not only capable to attach disc
-image but also capable to attach drive and memory card image.
+This is Virtual disc attacher by rmenhal.
 If combined with NKPatcher or Cerbios this utility will enabled us to boot XISOs
 directly from ogxbox's disk.
-MD5SUM: 26364e948ad25311ccde086e0fbd515f
+MD5SUM: e658735e0a533d2a9f5dfb60b8334fc7
+Taken from driveimageutils-v1.0.1 package.
+The license is GPL, so I guess can redistribute the binary with this repo.
+Get it from the usual place.
 
 extract-xiso
 ============
