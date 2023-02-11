@@ -38,11 +38,11 @@ THIS_DIR=$(cd "${0%%/*}" || exit; pwd)
 #     https://github.com/XboxDev/extract-xiso
 #     - Use 32 build as 64 build is created problematic ISO's:
 #       https://github.com/XboxDev/extract-xiso/issues/29
-# 2.  7z, dd, grep, split
-#     sudo aptitude install p7zip-full dd grep split
+# 2.  7z, dd, grep
+#     sudo aptitude install p7zip-full dd grep
 # 3.  attach.xbe
 #     Get it from driveimageutils-v1.0.1 or Repackinator package.
-declare -a DEPS=(7z 'attach.xbe' dd extract-xiso grep split)
+declare -a DEPS=(7z 'attach.xbe' dd extract-xiso grep)
 for ((NUM=${#DEPS[@]},i=0; i<NUM;i++)); do
   if command -v "${DEPS[i]}" &>/dev/null || [[ -f $THIS_DIR/bin/${DEPS[i]} ]]; then
     unset -v 'DEPS[i]'
@@ -60,10 +60,11 @@ fi
 
 # Most redump distributed as 7z archive. But we assume it's not.
 ARCHIVE=false
-# Boot from disk XISO need virtual disc attacher.
+# Boot xiso from disk need virtual disc attacher.
+# Let's assume we just want to extract the xiso.'
 ATTACH=false
 
-# In case you're using custom compiled extract-xiso.
+# In case you have extract-xiso in $PATH.
 if command -v extract-xiso &>/dev/null; then
   EXISO=$(command -v extract-xiso)
 else
@@ -71,13 +72,15 @@ else
 fi
 
 # extract-xiso arguments.
+# Rewrite xiso (-r) used here as it's convert xiso on the fly.
 EXISOARGS=('-qr')
 # Default to where we executed the script command.
 INPUT="$PWD"
 OUTPUT="$PWD"
 # Assume the redump archive is not password protected.
 PASS=false
-# FATX limit to 4GB / 4096 Megabyte 4294967296 bytes max file size.
+# If we want to boot xiso directly from disk, it need to be smaller than FATX limit.
+# Or we have to split it.
 SPLIT=false
 
 # FUNCTIONS --------------------------------------------------------------------
@@ -124,8 +127,7 @@ print_usage() {
           If the archives protected with different passwords, it's better to not
           use this option and input password manually when asked.
     -s    Split output ISO into two equal size ISOs.
-          Output will always be splitted when -b is used and its size is bigger
-          than 4GB / 4096 Megabyte / 4294967296 bytes.
+          Output will be splitted if its size is bigger than 4294966272 bytes.
     -v    Print version information and exit.
 
   Example:
@@ -185,7 +187,7 @@ while getopts ":bDdhi:mo:p:sv" opt; do
       SPLIT=true
     ;;
     v)
-      print 'redump2x v0.4 (2022.12.11) - written by si_kabayan'
+      print 'redump2x v0.5 (2023.02.11) - written by si_kabayan'
       exit
     ;;
     \?)
@@ -201,7 +203,8 @@ done
 
 # Check if the input is exist.
 if [[ -d $INPUT ]]; then
-  # Only find *.iso, *.7z, *.zip and *.rar bigger than 4 GB.
+  # Most redump archive size are larger than 4 GB.
+  # So, only find *.iso, *.7z, *.zip and *.rar bigger than 4 GB.
   mapfile -t XISO < <(find "$INPUT" -maxdepth 1 -type f -size +4G \( -name "*.iso" -o -name "*.7z" -o -name "*.zip" -o -name "*.rar" \) 2>/dev/null)
   if [[ ${#XISO} -eq 0 ]]; then
     print_w "No redump files found in $INPUT."
@@ -252,7 +255,7 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
   # FATX only support 42 characters for filename (that include spaces).
   # 4 characters are reserved for file extension (.iso).
   if [[ ${#TITLE} -gt 37 ]]; then
-    # Limit game's title to 37 characters.
+    # Limit game's title to 38 characters.
     TITLE="${TITLE:0:37}"
   fi
 
@@ -264,7 +267,8 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     SPLIT=true
     OUTPUT="$OUTPUT/$TITLE"
     mkdir -p "$OUTPUT"
-    # TODO: edit default.xbe's title to game's title.
+    # TODO: Get the original default.xbe properties (e.g. title name, title ID,
+    # thumbnail, etc) into attach.xbe.
     cp "$THIS_DIR/bin/attach.xbe" "$OUTPUT/default.xbe"
   fi
 
@@ -272,27 +276,27 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
   # Is it an archive?
   if [[ "${XISO[n]##*.}" != 'iso' ]]; then
     ARCHIVE=true
+    # Grep iso's name in the archive.
+    # Only assume single iso as most redump archive contain single iso.
+    XISOIN="${XISO[n]%/*}/$(7z l "${XISO[n]}" -slt | grep -oP '(?<=Path = ).*?(?=.iso).iso')"
     # Is the archive encrypted?
     if [[ $(7z l "${XISO[n]}" -slt | grep -oP '(?<=Encrypted = ).*?(?=$)') = '+' ]]; then
       if $PASS; then
         7z x -bso0 -p"$PASSWORD" -o"${XISO[n]%/*}" "${XISO[n]}"
       else
-        # Ask for password
-        7z x -o"${XISO[n]%/*}" "${XISO[n]}"
+        print_w 'Enter password:'
+        7z x -bso0 -o"${XISO[n]%/*}" "${XISO[n]}"
       fi
+    else
+      7z x -bso0 -o"${XISO[n]%/*}" "${XISO[n]}"
     fi
-  fi
-
-  if $ARCHIVE; then
-    # Grep iso's name in the archive.
-    # Only assume single iso as most redump archive contain single iso.
-    XISOIN="${XISO[n]%/*}/$(7z l "${XISO[n]}" -slt | grep -oP '(?<=Path = ).*?(?=.iso).iso')"
   else
     XISOIN="${XISO[n]}"
   fi
 
-  if [[ ${EXISO##*/} = 'extract-xiso' ]]; then
-    # Rewrite xiso (-r) used here as it's convert xiso on the fly.
+  [[ -f $XISOIN ]] || exit
+
+if [[ ${EXISO##*/} = 'extract-xiso' ]]; then
     "$EXISO" "${EXISOARGS[@]}" "$XISOIN" -d "$OUTPUT"
   else
     "$EXISO" if="$XISOIN" of="$OUTPUT/${FILENAME}.iso" skip=387 bs=1M status=none
@@ -317,12 +321,19 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     fi
   fi
 
-  if [[ $(stat -c%s "$OUTPUT/$TITLE.iso") -gt 4294967296 ]]; then
+  # FATX limit to 4GB / 4096 Megabyte / 4294967296 bytes max file size.
+  # We use 4294967296 - 1024 just to be safe.
+  XSIZE=$(stat -c%s "$OUTPUT/$TITLE.iso")
+  if [[ $XSIZE -gt 4294966272 ]]; then
     print_w 'The extracted xiso is bigger than FATX limit.'
     if $SPLIT; then
       print 'Splitting....'
-      split -a 1 --additional-suffix=".iso" -dn 2 "$OUTPUT/$TITLE.iso" "$OUTPUT/${TITLE:0:35}-"
-      rm "$OUTPUT/$TITLE.iso"
+      XHALF=$((XSIZE / 2048 / 2))
+      SPLITIN="$OUTPUT/$TITLE.iso"
+      SPLITOUT="$OUTPUT/${TITLE:0:35}"
+      dd if="$SPLITIN" of="${SPLITOUT}-0.iso" bs=2048 count=$XHALF status=none
+      dd if="$SPLITIN" of="${SPLITOUT}-1.iso" bs=2048 count=$XHALF skip=$XHALF status=none
+      rm "$SPLITIN"
     fi
   fi
 

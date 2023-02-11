@@ -1,0 +1,29 @@
+v0.5  - 20230211 06:15:59
+- Remove split and use dd to slice big image. Less dependency is better.
+- Fix: No password asked when password is not pass to the arguments.
+- Lower big image threshold to 4294967296 - 1024 just to be safe not hitting
+  FATX's maximum file size.
+
+v0.4  - 20221211 13:10:34
+- Revert attach.xbe to driveimageutils's version.
+  Some images failed to boot from Repackinator's attach.xbe.
+- Add archive (7z, and its supported archives) support.
+  Most of the redump images distributed in zip or 7z archives.
+- Update README.md.
+- Move media patching option from -p to -m.
+  To make it similar to extract-xiso's option.
+
+v0.3  - 20221018 21:45:28
+- Add dd extraction method.
+  dd produce bigger image as it's only remove (the small) video partition, but
+  still a nice option to have in case extract-xiso method failed to create
+  working image.
+- Replace driveimageutils's attach.xbe with Repackinator's attach.xbe.
+- Adding documentations.
+
+v0.2  - 20220907 01:07:09
+Probably a better script.
+
+v0.1  - 20220903 19:39:50
+- Initial commit.
+- Basic operations such as extracting and xiso boot mostly works.
