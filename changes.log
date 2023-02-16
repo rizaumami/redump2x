@@ -1,3 +1,14 @@
+v0.6  - 20230216 20:41:58
+- Copy default.xbe's certicate to attach.xbe. Now:
+  - trainers work
+  - folder and file name taken from game's title
+- To copy certificate, we need to acces default/game.xbe. Unfortunately, I'm
+  not yet able to directly extract default.xbe from xiso.
+  Hence a new dependency; xbfuse. xbfuse used to mount xiso so we can easy acces
+  to its contents.
+  TODO: extract default/game.xbe directly from xiso.
+- Game cover for UnleashX dashboard using Rocky5's Xbox Artwork Installer.
+
 v0.5  - 20230211 06:15:59
 - Remove split and use dd to slice big image. Less dependency is better.
 - Fix: No password asked when password is not pass to the arguments.
