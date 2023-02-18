@@ -87,8 +87,15 @@ add_artworks() {
   # Artwork for UnleashX dashboard.
   if [[ -f $ARTWORKS ]]; then
     print 'Copying artwork.'
-    7z e -bso0 "$ARTWORKS" -o"${2}" "${1}_*"
-    mv "$2"/{"${1}"_*,Icon}.jpg
+    7z e -bso0 "$ARTWORKS" -o"${2}" "${1}_*" -aoa
+    mapfile -t ICON < <(find "$2" -type f -iname "${1}_*")
+    # Some titles has many covers.
+    if [[ ${#ICON[@]} -gt 1 ]]; then
+      # Let's randomly select artwork as Icon.jpg.
+      mv "${ICON[0]}" "$2"/Icon.jpg
+    else
+      mv "$2"/{"${1}"_*,Icon}.jpg
+    fi
   else
     print_w 'Artwork missing.'
   fi
@@ -129,7 +136,7 @@ install_artworks() {
   for ((NUM=${#COVER[@]},i=0; i<NUM;i++)); do
     if [[ -f ${COVER[i]%/*}/detials.txt ]]; then
       TID=$(<"${COVER[i]%/*}/detials.txt")
-      # Remove N/A from ID less title.
+      # Remove N/A if title doesn't have ID.
       TID="${TID/N\/A/}"
       TID="${TID/|*\\/_}"
       # Remove carriage return.
@@ -140,23 +147,24 @@ install_artworks() {
     7z e -bso0 "${COVER[i]}" -o"$TMPDIR" '_resources/artwork/poster.jpg' -so > "$TMPDIR/${TID}.jpg"
   done
   7z a -bso0 "$ARTWORKS" "${TMPDIR}/*.jpg"
-  rm -r "$TMPDIR"
+  remove_tmpdir
   print_g 'Artworks has been installed.'
 }
 
 patch_attach() {
-  local XBEPATCH="$TMPDIR/${1%%/*}.patch"
+  local XBEPATCH="$TMPDIR/${1##*/}.hexpatch"
   # Create certificate patch.
   xxd -c1 -l 464 -s $(($3-$2)) "$1" > "$XBEPATCH"
   # Certificate version.
   xxd -c1 -l 4 -s $((($3-$2)+172)) "$1" >> "$XBEPATCH"
   # Adjust offset from game's default/game.xbe to attach.xbe's offset.
+  local DIFF=$(($3-0x00010178))
   while read -r hex; do
     local SOFFS="0x${hex:0:8}"
-    printf '00000%x %s %s\n' "$((SOFFS-0x0000000C))" "${hex:10:2}" "${hex:14:1}"
-  done < "$XBEPATCH" > "$TMPDIR/cert.patch"
+    printf '00000%x: %s  %s\n' "$((SOFFS-DIFF))" "${hex:10:2}" "${hex:14:1}"
+  done < "$XBEPATCH" > "$TMPDIR/cert.hexpatch"
   cp "$THIS_DIR/bin/attach.xbe" "$4/default.xbe"
-  xxd -c1 -r "$TMPDIR/cert.patch" "$4/default.xbe"
+  xxd -c1 -r "$TMPDIR/cert.hexpatch" "$4/default.xbe"
 }
 
 print() {
@@ -228,6 +236,10 @@ print_usage() {
   exit
 }
 
+remove_tmpdir() {
+  [[ -d $TMPDIR/xbfuse ]] && umount -q "$TMPDIR/xbfuse"
+  rm -r "$TMPDIR"
+}
 split_xiso() {
   local XSIZE
   XSIZE=$(stat -c%s "$1")
@@ -287,7 +299,7 @@ while getopts ":abDdhi:mo:p:suv" opt; do
       UPDATE=true
     ;;
     v)
-      print 'redump2x v0.6 (2023.02.16) - written by si_kabayan'
+      print 'redump2x v0.7 (2023.02.18) - written by si_kabayan'
       exit
     ;;
     \?)
@@ -360,7 +372,7 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
   # TODO: extract default.xbe or game.xbe directly from xiso.
   mkdir -p "$TMPDIR/xbfuse" || exit
   "$XBFUSE" "$XISOIN" "$TMPDIR/xbfuse"
-  XBE=$(find "$TMPDIR/xbfuse" -type f \( -iname 'default.xbe' -o -iname 'game.xbe' \))
+  XBE=$(find "$TMPDIR/xbfuse" -maxdepth 1 -type f \( -iname 'default.xbe' -o -iname 'game.xbe' \))
   # Get base address.
   BASE="$(xxd -e -l 4 -s 0x104 "$XBE")"
   BASE="0x${BASE:10:8}"
@@ -384,6 +396,7 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     OUTPUT=${INPUT%/*}
     patch_attach "$XBE" "$BASE" "$CERT" "$OUTPUT"
     add_artworks "$RTID" "$OUTPUT"
+    remove_tmpdir
     exit
   fi
 
@@ -427,9 +440,7 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     split_xiso "$OUTPUT/$TITLE.iso"
   fi
 
-  # Cleaning up.
-  umount "$TMPDIR/xbfuse"
-  rm -r "$TMPDIR"
+  remove_tmpdir
 
   print_g 'Done. Xiso(s) can be found in:' "$OUTPUT"
 

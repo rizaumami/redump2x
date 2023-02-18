@@ -1,3 +1,11 @@
+v0.7  - 20230218
+Bugs fix:
+- Failed to create Icon.jpg if there are two artworks exist for an ID.
+  Now it will randomly select one of thos artwork as the Icon.jpg.
+- Game's certificate patched on wrong offset.
+- find search for default/game.xbe recursively resulted in incorrect xiso's
+  folder stucture. Now it will only searchj in root dir.
+
 v0.6  - 20230216 20:41:58
 - Copy default.xbe's certicate to attach.xbe. Now:
   - trainers work
