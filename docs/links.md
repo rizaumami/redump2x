@@ -5,3 +5,5 @@
 - https://github.com/Team-Resurgent/Repackinator
 - https://xemu.app/docs/disc-images
 - https://www.epforums.org/showthread.php?87071-XBOX-FATX-limitations-and-notes](https://www.epforums.org/showthread.php?87071-XBOX-FATX-limitations-and-notes).
+- http://www.caustik.com/cxbx/download/xbe.htm
+- https://github.com/multimediamike/xbfuse

@@ -1,3 +1,8 @@
+v0.8  - 20230219
+- Update README.
+- Fix missing xxd as dependency.
+- Simpler patch's offset shift.
+
 v0.7  - 20230218
 Bugs fix:
 - Failed to create Icon.jpg if there are two artworks exist for an ID.

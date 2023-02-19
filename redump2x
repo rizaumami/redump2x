@@ -37,12 +37,12 @@ THIS_DIR=$(cd "${0%%/*}" || exit; pwd)
 # 1.  extract xiso: https://github.com/XboxDev/extract-xiso
 #     - Use 32 build as 64 build is created problematic ISO's:
 #       https://github.com/XboxDev/extract-xiso/issues/29
-# 2.  7z, dd, grep
-#     sudo aptitude install p7zip-full dd grep
+# 2.  7z, dd, grep, xxd
+#     sudo aptitude install p7zip-full dd grep xxd
 # 3.  attach.xbe
 #     Get it from driveimageutils-v1.0.1 package from the usual place.
 # 4.  xbfuse: https://github.com/multimediamike/xbfuse
-declare -a DEPS=(7z 'attach.xbe' dd extract-xiso grep xbfuse)
+declare -a DEPS=(7z 'attach.xbe' dd extract-xiso grep xbfuse xxd)
 for ((NUM=${#DEPS[@]},i=0; i<NUM;i++)); do
   if command -v "${DEPS[i]}" &>/dev/null || [[ -f $THIS_DIR/bin/${DEPS[i]} ]]; then
     unset -v 'DEPS[i]'
@@ -152,19 +152,16 @@ install_artworks() {
 }
 
 patch_attach() {
+  print 'Patching attacher....'
   local XBEPATCH="$TMPDIR/${1##*/}.hexpatch"
-  # Create certificate patch.
-  xxd -c1 -l 464 -s $(($3-$2)) "$1" > "$XBEPATCH"
-  # Certificate version.
-  xxd -c1 -l 4 -s $((($3-$2)+172)) "$1" >> "$XBEPATCH"
   # Adjust offset from game's default/game.xbe to attach.xbe's offset.
-  local DIFF=$(($3-0x00010178))
-  while read -r hex; do
-    local SOFFS="0x${hex:0:8}"
-    printf '00000%x: %s  %s\n' "$((SOFFS-DIFF))" "${hex:10:2}" "${hex:14:1}"
-  done < "$XBEPATCH" > "$TMPDIR/cert.hexpatch"
+  local SHIFT=$((0x00010178-$3))
+  # Create certificate patch.
+  xxd -c1 -l 464 -s $(($3-$2)) -o "$SHIFT" "$1" > "$XBEPATCH"
+  # Certificate version.
+  xxd -c1 -l 4 -s $((($3-$2)+172)) -o "$SHIFT" "$1" >> "$XBEPATCH"
   cp "$THIS_DIR/bin/attach.xbe" "$4/default.xbe"
-  xxd -c1 -r "$TMPDIR/cert.hexpatch" "$4/default.xbe"
+  xxd -c1 -r "$XBEPATCH" "$4/default.xbe"
 }
 
 print() {
@@ -397,6 +394,7 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     patch_attach "$XBE" "$BASE" "$CERT" "$OUTPUT"
     add_artworks "$RTID" "$OUTPUT"
     remove_tmpdir
+    print_g 'Done. New default.xbe and Icon.jpg has been created.'
     exit
   fi
 
