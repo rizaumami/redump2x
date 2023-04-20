@@ -1,3 +1,19 @@
+v0.9
+- Safer script by setting -euo pipefail.
+- Change deault input and output directory to user's home directory.
+- Change pwd detection.
+- Revert splitting to split as it's simpler than dd.
+- Remove mediapatch option.
+- Check if output directory is writeable by user.
+- Fix: -D not removing the input
+- Fix: Script failed on xiso input smaller than 4 GB.
+- Fix: Hang when mounting splitted iso. Script using xbfuse to mount xiso, and
+  it fail to mount second xiso so we better skip it.
+- Fix: Script failed to patch attach.xbe because of different names of game's
+  launcher, e.g. default.xbe, Default.xbe, DEFAULT. XBE, etc.
+- Fix: Empty attach.xbe's title. When, somehow, this script failed to detect
+  title from game's launcher it now will using redump's filename as the title.
+
 v0.8  - 20230219
 - Update README.
 - Fix missing xxd as dependency.
