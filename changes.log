@@ -1,4 +1,11 @@
-v0.9
+v0.9.1 - 20230427
+- Fix: Script ignoring extract-xiso's generated image.
+- dd will now skip extract-xiso's generated image as it doesn't have video
+  partition.
+- Fix: Script detect input with "2.iso" string in its filename as splitted xiso.
+- Update README.md.
+
+v0.9 - 20230420
 - Safer script by setting -euo pipefail.
 - Change deault input and output directory to user's home directory.
 - Change pwd detection.
