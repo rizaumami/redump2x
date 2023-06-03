@@ -13,7 +13,7 @@ This script was created mainly to automate the processes needed, such as:
 
 ### Install
 
-- Install dependendies
+- Install dependencies
 
   ```bash
   sudo apt install coreutils p7zip-full grep xxd

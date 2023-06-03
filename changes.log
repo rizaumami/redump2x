@@ -1,3 +1,7 @@
+v1.0 - 20230602
+- Reduce print to stdout.
+- Fix typos.
+
 v0.9.1 - 20230427
 - Fix: Script ignoring extract-xiso's generated image.
 - dd will now skip extract-xiso's generated image as it doesn't have video
