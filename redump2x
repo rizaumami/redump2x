@@ -76,6 +76,7 @@ INPUT="$HOME"
 # Install artworks.
 INSTART=false
 OUTPUT="$HOME"
+OUTARG="$HOME"
 # Assume the redump archive is not password protected.
 PASS=false
 # Delete the input file after processing.
@@ -86,10 +87,16 @@ SPLIT=false
 TMPDIR=$(mktemp -d)
 # Update attacher.xbe and Icon.jpg.
 UPDATE=false
+XBE=''
 # Path to xbfuse binary used to mount xiso.
 XBFUSE="$HERE/bin/xbfuse"
 
 # FUNCTIONS --------------------------------------------------------------------
+
+remove_tmpdir() {
+  [[ -d $TMPDIR/xbfuse ]] && umount -q "$TMPDIR/xbfuse"
+  rm -r "$TMPDIR"
+}
 
 add_artworks() {
   # Artwork for UnleashX dashboard.
@@ -111,7 +118,7 @@ clean_fname() {
   # FATX only support characters below (include space):
   # ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&'()-.@[]^_`{}~
   local FATXCHARS='[^]0-9a-zA-Z!#$%&'\''().@^_`{}~\ [-]'
-  local CN="${1//:/-}"
+  local CN="${1//:/ -}"
   # Is game's title contains illegal caharacters?
   if [[ $CN =~ $FATXCHARS ]]; then
     print_w 'Removing unsupported character at:'
@@ -130,7 +137,9 @@ clean_fname() {
     # Limit game's title to 38 characters.
     CN="${CN:0:37}"
   fi
-  TITLE="$CN"
+  # Remove trailing whitespace
+  shopt -s extglob
+  TITLE="${CN%%+([[:space:]])}"
 }
 
 install_artworks() {
@@ -202,7 +211,7 @@ print_usage() {
           will be quite big. Mostly around ~7 GB.
     -h    Print this help text and exit.
     -i    Input file or directory (default to user's home directory).
-          If input is a directory, files found inside will be batch processed.
+          If input is a directory, files inside it will be batch processed.
     -o    Output directory (default to user's home directory).
     -p    Password to extract encrypted archive.
           Script will exit on wrong password.
@@ -234,11 +243,6 @@ print_usage() {
   exit
 }
 
-remove_tmpdir() {
-  [[ -d $TMPDIR/xbfuse ]] && umount -q "$TMPDIR/xbfuse"
-  rm -r "$TMPDIR"
-}
-
 # MAIN -------------------------------------------------------------------------
 
 # If this script run without argument.
@@ -267,7 +271,8 @@ while getopts ":abDdhi:o:p:suv" opt; do
       INPUT="$OPTARG"
     ;;
     o)
-      OUTPUT="$OPTARG"
+      OUTARG="$OPTARG"
+      OUTPUT="$OUTARG"
     ;;
     p)
       PASS=true
@@ -336,7 +341,8 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
   fi
 
   if $UPDATE; then
-    print_g "Updating $INPUT"
+    # TODO: update title being processed in batch processing
+    print_g "Processing ${XISO[n]}"
   else
     print_g "Processing ${XISO[n]}"
   fi
@@ -349,17 +355,17 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     ARCHIVE=true
     # Grep iso's name in the archive.
     # Only assume single iso as most redump archive contain single iso.
-    XISOIN="${XISO[n]%/*}/$(7z l "${XISO[n]}" -slt | grep -oP '(?<=Path = ).*?(?=.iso).iso')"
+    XISOIN="$TMPDIR/$(7z l "${XISO[n]}" -slt | grep -oP '(?<=Path = ).*?(?=.iso).iso')"
     # Is the archive encrypted?
     if [[ $(7z l "${XISO[n]}" -slt | grep -oP '(?<=Encrypted = ).*?(?=$)') = '+' ]]; then
       if $PASS; then
-        7z x -bso0 -p"$PASSWORD" -o"${XISO[n]%/*}" "${XISO[n]}"
+        7z x -bso0 -p"$PASSWORD" -o"$TMPDIR" "${XISO[n]}"
       else
         print_w 'Enter password:'
-        7z x -bso0 -o"${XISO[n]%/*}" "${XISO[n]}"
+        7z x -bso0 -o"$TMPDIR" "${XISO[n]}"
       fi
     else
-      7z x -bso0 -o"${XISO[n]%/*}" "${XISO[n]}"
+      7z x -bso0 -o"$TMPDIR" "${XISO[n]}"
     fi
   else
     XISOIN="${XISO[n]}"
@@ -369,7 +375,7 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
   mkdir -p "$TMPDIR/xbfuse" || exit
   "$XBFUSE" "$XISOIN" "$TMPDIR/xbfuse"
 
-  for x in "$TMPDIR/xbfuse/"{{{d,D}efault,game}.xbe,{DEFAULT,GAME}.XBE}; do
+  for x in "$TMPDIR/xbfuse/"{{{d,D}efault,game}.xbe,{DEFAULT,GAME}.{XBE,xbe}}; do
     if [[ -f $x ]]; then
       XBE="$x"
       break
@@ -386,7 +392,7 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
   RTID=$(xxd -e -u -l 8 -s $(((CERT-BASE)+8)) "$XBE")
   RTID="${RTID:10:8}"
   # Use title name as file name.
-  # NOTE: bash can't store nul byte, will drop it, and then whine.
+  # NOTE: bash can't store null byte, will drop it, and then whine.
   # TODO: A proper way to get title name fom default.xbe.
   TITLE=''
   while IFS= read -r -d '' substring || [[ $substring ]]; do
@@ -417,11 +423,13 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
 
   # Patch attach.xbe with default/game.xbe's certificate.
   if $ATTACH; then
-    OUTPUT="$OUTPUT/$TITLE"
+    OUTPUT="$OUTARG/$TITLE"
     mkdir -p "$OUTPUT"
     patch_attach "$XBE" "$BASE" "$CERT" "$OUTPUT"
     add_artworks "$RTID" "$OUTPUT"
   fi
+
+  umount -q "$TMPDIR/xbfuse"
 
   if [[ ${EXISO##*/} = 'extract-xiso' ]]; then
     print 'Extracting redump'
@@ -476,6 +484,7 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     print 'Splitting xiso           '
     split -a 1 --additional-suffix=".iso" -dn 2 "$OUTPUT/$TITLE.iso" "$OUTPUT/${TITLE:0:35}."
     rm "$OUTPUT/$TITLE.iso"
+    SPLIT=false
   fi
 
   remove_tmpdir
