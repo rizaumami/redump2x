@@ -1,13 +1,14 @@
 # redump2x
-`redump2x` is a script to "extract" the original Xbox's redump archives.
+`redump2x` is a Bash script to convert ogxbox redump archive into xiso.
 
-I was using redump archives to test xiso boot feature from NKPatcher and Cerbios. \
-This script was created mainly to automate the processes needed, such as:
-- convert redump iso or archive to regular xiso format;
-- copy `default.xbe`'s certificate to `attach.xbe` ;
-- sanitize the filename (to conform FATX limitations);
-- split the xiso if its size is bigger than (approx) 4 GB (also, FATX limitation);
+## Features:
+- convert redump iso or archive to xiso format.
+- copy game's certificate to `attach.xbe`.
+- sanitize xiso filename (to conform FATX limitations).
+- split xiso into two equal size.
 - add game cover to be displayed on UnleashX dashboard.
+- join splitted xisos.
+- batch processing.
 
 ## How to
 
@@ -35,7 +36,7 @@ This script was created mainly to automate the processes needed, such as:
   ```
 
   ```
-  redump2x is a script to convert ogxbox redump archive into launchable xiso.
+  redump2x is a Bash script to convert ogxbox redump archive into xiso.
 
   Usage: redump2x OPTION
 
@@ -49,15 +50,16 @@ This script was created mainly to automate the processes needed, such as:
           This will only remove the redump's video partition, so the output
           will be quite big. Mostly around ~7 GB.
     -h    Print this help text and exit.
-    -i    Input file or directory (default to user's home directory).
-          If input is a directory, files found inside will be batch processed.
-    -o    Output directory (default to user's home directory).
+    -i    Input file or directory (default to /home/iza).
+          If input is a directory, files inside it will be batch processed.
+    -j    Join splitted xisos.
+    -o    Output directory (default to /home/iza).
     -p    Password to extract encrypted archive.
           Script will exit on wrong password.
           If the archives protected with different passwords, it's better to not
           use this option and input password manually when asked.
     -s    Split output xiso into two equal size.
-    -u    Update attach.xbe with default.xbe's or game.xbe's certificate.
+    -u    Update attach.xbe with game's certificate.
     -v    Print version information and exit.
 
   Example:
@@ -71,7 +73,7 @@ This script was created mainly to automate the processes needed, such as:
       redump2x -i /home/iza/Redump -o /tmp/xiso
 
     - Convert CoolGame.iso to bootable from disk format.
-      redump2x -bi /home/iza/CoolGame.iso
+      redump2x -sbi /home/iza/CoolGame.iso
 
     - Convert CoolGame.iso and split the output into two equal size ISOs.
       redump2x -si /home/iza/CoolGame.iso

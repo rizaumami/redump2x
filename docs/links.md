@@ -4,6 +4,7 @@
 - https://github.com/XboxDev/extract-xiso
 - https://github.com/Team-Resurgent/Repackinator
 - https://xemu.app/docs/disc-images
-- https://www.epforums.org/showthread.php?87071-XBOX-FATX-limitations-and-notes](https://www.epforums.org/showthread.php?87071-XBOX-FATX-limitations-and-notes).
+- https://www.epforums.org/showthread.php?87071-XBOX-FATX-limitations-and-notes
 - http://www.caustik.com/cxbx/download/xbe.htm
 - https://github.com/multimediamike/xbfuse
+- [Xbox Artwork Installer](https://drive.google.com/file/d/1Y3_21N8yDqYJ1CznaP6ceMM87JHpTHwd/view?usp=sharing)

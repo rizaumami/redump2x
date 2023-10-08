@@ -75,15 +75,18 @@ NOART=false
 INPUT="$HOME"
 # Install artworks.
 INSTART=false
+# Join splitted xisos.
+JOIN=false
 OUTPUT="$HOME"
+# Prevent nested output.
 OUTARG="$HOME"
 # Assume the redump archive is not password protected.
 PASS=false
 # Delete the input file after processing.
 REMIN=false
-# If we want to launch xiso directly from ogxbox's disk, it's need to be smaller
-# than FATX limit. Or we have to split it.
+# Splitted xiso only needed if it's mean to be transfered into ogxbox.
 SPLIT=false
+# If mounting tmpfs on /tmp this will eat your RAM.
 TMPDIR=$(mktemp -d)
 # Update attacher.xbe and Icon.jpg.
 UPDATE=false
@@ -93,15 +96,10 @@ XBFUSE="$HERE/bin/xbfuse"
 
 # FUNCTIONS --------------------------------------------------------------------
 
-remove_tmpdir() {
-  [[ -d $TMPDIR/xbfuse ]] && umount -q "$TMPDIR/xbfuse"
-  rm -r "$TMPDIR"
-}
-
 add_artworks() {
   # Artwork for UnleashX dashboard.
   if [[ -f $ARTWORKS ]]; then
-    print 'Copying artwork  '
+    print 'Copying artwork.'
     mapfile -t ICON < <(7z l "$ARTWORKS" -slt | grep -oP "(?<=Path = ${1}).*?(?=$)")
     if [[ ${#ICON[@]} -eq 0 ]]; then
       NOART=true
@@ -115,10 +113,14 @@ add_artworks() {
 }
 
 clean_fname() {
+  # Get basename
+  local CN="${1##*/}"
+  CN="${CN%.*}"
   # FATX only support characters below (include space):
   # ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&'()-.@[]^_`{}~
   local FATXCHARS='[^]0-9a-zA-Z!#$%&'\''().@^_`{}~\ [-]'
-  local CN="${1//:/ -}"
+  # Replace colon with [:space:]dash.
+  CN="${1//:/ -}"
   # Is game's title contains illegal caharacters?
   if [[ $CN =~ $FATXCHARS ]]; then
     print_w 'Removing unsupported character at:'
@@ -166,8 +168,20 @@ install_artworks() {
   print_g 'Artworks has been installed.'
 }
 
+list_output() {
+  # ( $OUTPUT $ATTACH $XSPLIT $TITLE )
+  printf '\r:: %s                                                 \n' "Done: $1"
+  local XF=( -name "${4}.iso" )
+  if $2; then
+    XF=()
+  elif $3; then
+    XF=( -name "${4}.?.iso" )
+  fi
+  find "$1" -maxdepth 1 -type f "${XF[@]}" -printf '\t └─ %s - %P\n' | numfmt --field=2 --padding=+4 --to=si
+}
+
 patch_attach() {
-  print 'Patching attacher'
+  print 'Patching attacher.'
   local XBEPATCH="$TMPDIR/${1##*/}.hexpatch"
   # Adjust offset from game's default/game.xbe to attach.xbe's offset.
   local SHIFT=$((0x00010178-$3))
@@ -181,7 +195,7 @@ patch_attach() {
 }
 
 print() {
-  printf '\r:: %s' "$@"
+  printf '\r:: %s                                                         ' "$@"
 }
 
 # Print green text,
@@ -196,7 +210,7 @@ print_w() {
 
 print_usage() {
   printf '%s\n' "
-  ${0##*/} is a script to convert ogxbox redump archive into launchable xiso.
+  ${0##*/} is a Bash script to convert ogxbox redump archive into xiso.
 
   Usage: ${0##*/} OPTION
 
@@ -210,15 +224,16 @@ print_usage() {
           This will only remove the redump's video partition, so the output
           will be quite big. Mostly around ~7 GB.
     -h    Print this help text and exit.
-    -i    Input file or directory (default to user's home directory).
+    -i    Input file or directory (default to $HOME).
           If input is a directory, files inside it will be batch processed.
-    -o    Output directory (default to user's home directory).
+    -j    Join splitted xisos.
+    -o    Output directory (default to $HOME).
     -p    Password to extract encrypted archive.
           Script will exit on wrong password.
           If the archives protected with different passwords, it's better to not
           use this option and input password manually when asked.
     -s    Split output xiso into two equal size.
-    -u    Update attach.xbe with default.xbe's or game.xbe's certificate.
+    -u    Update attach.xbe with game's certificate.
     -v    Print version information and exit.
 
   Example:
@@ -232,7 +247,7 @@ print_usage() {
       ${0##*/} -i $HOME/Redump -o /tmp/xiso
 
     - Convert CoolGame.iso to bootable from disk format.
-      ${0##*/} -bi $HOME/CoolGame.iso
+      ${0##*/} -sbi $HOME/CoolGame.iso
 
     - Convert CoolGame.iso and split the output into two equal size ISOs.
       ${0##*/} -si $HOME/CoolGame.iso
@@ -243,6 +258,11 @@ print_usage() {
   exit
 }
 
+remove_tmpdir() {
+  [[ -d $TMPDIR/xbfuse ]] && umount -q "$TMPDIR/xbfuse"
+  rm -r "$TMPDIR"
+}
+
 # MAIN -------------------------------------------------------------------------
 
 # If this script run without argument.
@@ -250,7 +270,7 @@ if [[ ${#@} -eq 0 ]]; then
   print_usage
 fi
 
-while getopts ":abDdhi:o:p:suv" opt; do
+while getopts ":abDdhi:jo:p:suv" opt; do
   case $opt in
     a)
       INSTART=true
@@ -270,9 +290,12 @@ while getopts ":abDdhi:o:p:suv" opt; do
     i)
       INPUT="$OPTARG"
     ;;
+    j)
+      JOIN=true
+    ;;
     o)
       OUTARG="$OPTARG"
-      OUTPUT="$OUTARG"
+      OUTPUT="$OPTARG"
     ;;
     p)
       PASS=true
@@ -285,7 +308,7 @@ while getopts ":abDdhi:o:p:suv" opt; do
       UPDATE=true
     ;;
     v)
-      echo ':: redump2x v1.0 (2023.06.02) - written by si_kabayan'
+      echo ':: redump2x v1.1 (2023.10.09) - written by si_kabayan'
       exit
     ;;
     \?)
@@ -311,7 +334,7 @@ fi
 
 # Check if the input is exist.
 if [[ -d $INPUT ]]; then
-  if $UPDATE; then
+  if $UPDATE || $JOIN; then
     mapfile -t XISO < <(find "$INPUT" -maxdepth 2 -type f -name "*.iso" 2>/dev/null)
     INFILE='xiso'
   else
@@ -332,7 +355,31 @@ else
   exit
 fi
 
+if $JOIN; then
+  if [[ ${#XISO[@]} -eq 2 ]]; then
+    if [[ ${XISO[0]:0:(-6)} == "${XISO[1]:0:(-6)}" ]]; then
+      JOUT="${XISO[0]##*/}"
+      JOUT="${JOUT:0:(-6)}"
+      print_g "Joining $JOUT"
+      cat "${XISO[@]}" > "$OUTPUT/${JOUT}.iso"
+      list_output "$OUTPUT" "$ATTACH" "$SPLIT" "$JOUT"
+    else
+      print_w "Filenames are not match. Make sure it's splitted from the same xiso."
+    fi
+    remove_tmpdir
+  else
+    print_w "Expecting for 2 splitted xisos, provided with ${#XISO[@]}."
+    remove_tmpdir
+  fi
+  if $REMIN; then
+    rm "${XISO[0]}"
+    rm "${XISO[1]}"
+  fi
+  exit
+fi
+
 for (( n = 0; n < ${#XISO[@]}; n++ )) do
+  XSPLIT=$SPLIT
   # xbfuse will only successfully mount first splitted xiso. Skip the latters.
   if [[ ${XISO[n]:(-6):2} == .1 ]]; then
     if [[ -f ${XISO[n]:0:(-6)}.0.iso ]]; then
@@ -341,11 +388,11 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
   fi
 
   if $UPDATE; then
-    # TODO: update title being processed in batch processing
-    print_g "Processing ${XISO[n]}"
+    print_g "Updating ${XISO[n]%/*}"
   else
     print_g "Processing ${XISO[n]}"
   fi
+
   # Get basename.
   FILENAME="${XISO[n]##*/}"
   FILENAME="${FILENAME%.*}"
@@ -429,22 +476,20 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     add_artworks "$RTID" "$OUTPUT"
   fi
 
-  umount -q "$TMPDIR/xbfuse"
-
   if [[ ${EXISO##*/} = 'extract-xiso' ]]; then
-    print 'Extracting redump'
+    print 'Extracting redump.'
     "$EXISO" "${EXISOARGS[@]}" "$XISOIN" -d "$OUTPUT" 1>"$TMPDIR"/extract.log
   else
     if [[ $(stat -c%s "$XISOIN") -lt 7825162240 ]]; then
       print_w 'Input size is less than 7825162240. Probably not a redump. Skipped.'
       break
     else
-      print 'Removing video partition'
+      print 'Removing video partition.'
       "$EXISO" if="$XISOIN" of="$OUTPUT/${FILENAME}.iso" skip=387 bs=1M status=none
     fi
   fi
 
-  # No output.
+  # If no output.
   if [[ ! -f $OUTPUT/${FILENAME}.iso ]]; then
     # Check if input is already an optimized xiso.
     if ! grep -q optimized "$TMPDIR"/extract.log; then
@@ -454,13 +499,13 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
         break
       fi
     else
-      print 'Copying already optimized input'
+      print 'Copying already optimized input.'
       cp "$XISOIN" "$OUTPUT"
     fi
   fi
 
-  if [[ "$OUTPUT/${FILENAME}.iso" != "$OUTPUT/$TITLE.iso" ]]; then
-    mv "$OUTPUT/${FILENAME}.iso" "$OUTPUT/$TITLE.iso"
+  if [[ "$OUTPUT/${FILENAME}.iso" != "$OUTPUT/${TITLE}.iso" ]]; then
+    mv "$OUTPUT/${FILENAME}.iso" "$OUTPUT/${TITLE}.iso"
   fi
 
   # Rewrite xiso add ".old" extension to the original file. Revert it back.
@@ -476,26 +521,17 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     rm "$INPUT"
   fi
 
-  if $ATTACH && [[ $(stat -c%s "$OUTPUT/$TITLE.iso") -gt 4294965248 ]]; then
-    SPLIT=true
+  if $ATTACH && [[ $(stat -c%s "$OUTPUT/${TITLE}.iso") -gt 4294965248 ]]; then
+    XSPLIT=true
   fi
 
-  if $SPLIT; then
-    print 'Splitting xiso           '
-    split -a 1 --additional-suffix=".iso" -dn 2 "$OUTPUT/$TITLE.iso" "$OUTPUT/${TITLE:0:35}."
-    rm "$OUTPUT/$TITLE.iso"
-    SPLIT=false
+  if $SPLIT && $XSPLIT; then
+    print 'Splitting xiso.'
+    split -a 1 --additional-suffix=".iso" -dn 2 "$OUTPUT/${TITLE}.iso" "$OUTPUT/${TITLE:0:35}."
+    rm "$OUTPUT/${TITLE}.iso"
   fi
 
   remove_tmpdir
 
-  printf '\r:: %s\n' "Done: $OUTPUT"
-  if $ATTACH; then
-    XFILES=()
-  elif $SPLIT; then
-    XFILES=( -name "*.?.iso" )
-  else
-    XFILES=( -name "$TITLE.iso" )
-  fi
-  find "$OUTPUT" -maxdepth 1 -type f "${XFILES[@]}" -printf '\t └─ %s - %P\n' | numfmt --field=2 --padding=+4 --to=si
+  list_output "$OUTPUT" "$ATTACH" "$XSPLIT" "$TITLE"
 done

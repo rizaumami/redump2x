@@ -1,3 +1,8 @@
+v1.1 - 20231009
+- New feature: join, to join splitted xisos.
+- Now script default to no splitting, so we need to issue split (-s) if want to
+  create splitted xiso (e.g. to boot it from ogxbox's disk, etc.).
+
 v1.0 - 20230602
 - Reduce print to stdout.
 - Fix typos.
@@ -36,7 +41,7 @@ Bugs fix:
   Now it will randomly select one of thos artwork as the Icon.jpg.
 - Game's certificate patched on wrong offset.
 - find search for default/game.xbe recursively resulted in incorrect xiso's
-  folder stucture. Now it will only searchj in root dir.
+  folder stucture. Now it will only search in root dir.
 
 v0.6  - 20230216 20:41:58
 - Copy default.xbe's certicate to attach.xbe. Now:
