@@ -53,12 +53,16 @@
     -i    Input file or directory (default to /home/iza).
           If input is a directory, files inside it will be batch processed.
     -j    Join splitted xisos.
+    -n    Do not split Xiso.
+          Script is default to no splitting, but when -b is used it will always
+          splitting the xiso if its size is bigger than 4 GB.
+          With this option, xiso wont be splitted even when -b is used.
     -o    Output directory (default to /home/iza).
     -p    Password to extract encrypted archive.
           Script will exit on wrong password.
           If the archives protected with different passwords, it's better to not
           use this option and input password manually when asked.
-    -s    Split output xiso into two equal size.
+    -s    Always split output xiso into two equal size.
     -u    Update attach.xbe with game's certificate.
     -v    Print version information and exit.
 
@@ -73,18 +77,20 @@
       redump2x -i /home/iza/Redump -o /tmp/xiso
 
     - Convert CoolGame.iso to bootable from disk format.
-      redump2x -sbi /home/iza/CoolGame.iso
+      redump2x -bi /home/iza/CoolGame.iso
 
     - Convert CoolGame.iso and split the output into two equal size ISOs.
       redump2x -si /home/iza/CoolGame.iso
 
     - Provide password for password protected archive.
       redump2x -p secretpassword -bi /home/iza/CoolGame.7z
-
-
   ```
 
 ## Notes
+- This script uses `attach.xbe` from driveimageutils and tested on EvoX M8+ BIOS hardmodded ogxbox. \
+  Compatibility on another systems or configurations are not yet tested.
+- Script default to no splitting. But when `-b` is used, it will always split the xiso if its size is bigger than FATX limit. \
+  Use `-n` to keep the xiso unsplitted even when `-b` is in use.
 - Wrong password on protected archive will stop the script. \
   Only use `-p` option if the archives using the same password.
 - Game cover (artwork) is taken from Rocky5' Xbox Artwork Installer. \
