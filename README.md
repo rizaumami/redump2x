@@ -1,5 +1,5 @@
 # redump2x
-`redump2x` is a Bash script to convert ogxbox redump archive into xiso.
+`redump2x` is a Bash script to convert ogxbox redump archive into [xdvdfs](https://xboxdevwiki.net/XDVDFS) (xiso).
 
 ## Features:
 - convert redump iso or archive to xiso format.
@@ -8,6 +8,7 @@
 - split xiso into two equal size.
 - add game cover to be displayed on UnleashX dashboard.
 - join splitted xisos.
+- update attacher, artwork, filename, and directory name.
 - batch processing.
 
 ## How to
@@ -28,7 +29,7 @@
 
 ### Use
 
-- Go to redump2x folder an then execute `redump2x` script.
+- Go to `redump2x` folder an then execute `redump2x` script.
 
   ```bash
   cd redump2x
@@ -36,17 +37,17 @@
   ```
 
   ```
-  redump2x is a Bash script to convert ogxbox redump archive into xiso.
+  redump2x is a Bash script to convert ogxbox redump archive into xdvdfs (xiso).
 
   Usage: redump2x OPTION
 
   OPTION:
     -a    Install artworks (game cover) from Rocky5's Xbox Artwork Installer.
     -b    Create xiso folder to be booted from disk.
-          Need Cerbios, or driveimageutils, or xiso patched M8+ BIOS to launch
-          the folder.
+          Need either Cerbios, driveimageutils, xiso patched M8+ BIOS, or LithiumX
+          dashboard to launch the folder.
     -D    Delete the input file after processing.
-    -d    Use dd instead of extract-xiso.
+    -d    Use dd instead of xdvdfs.
           This will only remove the redump's video partition, so the output
           will be quite big. Mostly around ~7 GB.
     -h    Print this help text and exit.
@@ -63,7 +64,7 @@
           If the archives protected with different passwords, it's better to not
           use this option and input password manually when asked.
     -s    Always split output xiso into two equal size.
-    -u    Update attach.xbe with game's certificate.
+    -u    Update attach.xbe, thumbnail, filename, and directory name.
     -v    Print version information and exit.
 
   Example:
@@ -87,6 +88,15 @@
   ```
 
 ## Notes
+
+- If you want to build `xdvdfs`:
+
+  ```sh
+  sudo apt install cargo
+  cargo build --release
+  ```
+
+  Copy the binary to bin `redump2x`'s folder, or include `$HOME/.cargo/bin` to your `$PATH`.
 - This script uses `attach.xbe` from driveimageutils and tested on EvoX M8+ BIOS hardmodded ogxbox. \
   Compatibility on another systems or configurations are not yet tested.
 - Script default to no splitting. But when `-b` is used, it will always split the xiso if its size is bigger than FATX limit. \
@@ -97,7 +107,7 @@
   Get it from [here](https://drive.google.com/file/d/1Y3_21N8yDqYJ1CznaP6ceMM87JHpTHwd/view?usp=sharing) and install it using following command:
 
   ```bash
-  redump2x -a -i 'Xbox Artwork Installer.zip'
+  redump2x -ai 'Xbox Artwork Installer.zip'
   ```
 
   Now, Icon.jpg will automatically created during xiso preparation.

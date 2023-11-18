@@ -1,3 +1,11 @@
+v1.3 - 20231118
+- Replace extract-xiso with xdvdfs.
+- Remove xbfuse as we now (with info provided by xdvdfs) can directly extract
+  default.xbe from a redump.iso.
+- Use array to get Title Name by Title ID.
+- Use this title name to naming xbe title, filename, and game's directory.
+- Trap to cleanup temporary directory after unexpected event.
+
 v1.2 - 20231010
 - Title Name now taken from Repackinator's Title ID -> Title Name table.
 - Fix regression: Now -b will always split the xiso if its size is bigger than

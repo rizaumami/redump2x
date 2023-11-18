@@ -12,33 +12,20 @@ Get it from the usual place.
 
 --------------------------------------------------------------------------------
 
-extract-xiso
+xdvdfs
 
-A command line utility to allow the creation, modification, and extraction of
-XISOs.
-Originally witten by in (in@fishtank.com), and currently maintained and
-modernized by the XboxDev organization.
+xdvdfs is an original Xbox DVD Filesystem library and management tool.
 
-Link: https://github.com/XboxDev/extract-xiso
+Link: https://github.com/antangelo/xdvdfs
 
-License is custom but similar to GPL, so I guess can redistribute the binary too.
-The binaries included are my 32 bit linux build as 64 build create problematic
-xiso (https://github.com/XboxDev/extract-xiso/issues/29).
+Binary included in this bin folder is my personal build to get smaller size:
+https://github.com/antangelo/xdvdfs/issues/61.
 
-MD5SUM: bdadd5eb93df5da28952511694ea2489
+Built from this commit:
+https://github.com/antangelo/xdvdfs/commit/defc8789d4fea86be5f4822a502ec55036e87535
 
---------------------------------------------------------------------------------
+MD5SUM: 30e2562d8fc23bc7161c082af5c2c130
 
-xbfuse
-
-xbfuse is a utility to mount Xbox and Xbox 360 disk images via FUSE.
-xbfuse used in redump2x so it will easily access game's default.xbe.
-
-TODO: extract default.xbe or game.xbe directly from xiso.
-
-Link: https://github.com/multimediamike/xbfuse
-
-The license is GPL Version 2, so I guess can redistribute my personal build
-with this repo.
-
-MD5SUM: 47c646db54bfa2d1a733a80dfdadf752
+You can also get xdvdfs binary from its release page or by self build:
+  sudo apt install cargo
+  cargo build --release

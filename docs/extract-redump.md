@@ -45,3 +45,9 @@ On Linux machine, we can use the following tools to convert redump image to XISO
      ```sh
      extract-xiso -c $HOME/xgame game.iso
      ```
+
+5. [xdvdfs](https://github.com/antangelo/xdvdfs)
+
+  ```sh
+  xdvdfs pack game-redump.iso
+  ```
