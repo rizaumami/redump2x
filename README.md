@@ -93,6 +93,8 @@
 
   ```sh
   sudo apt install cargo
+  git clone https://github.com/antangelo/xdvdfs
+  cd xdvdfs
   cargo build --release
   ```
 

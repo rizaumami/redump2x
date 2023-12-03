@@ -1,3 +1,9 @@
+v1.3.1 - 20231203
+- New xdvdfs build that fix https://github.com/antangelo/xdvdfs/issues/64
+- Fix Metal Slug entry in TITLENAME array
+- Fix build xdvdfs documentation
+- Fix missing TMPDIR
+
 v1.3 - 20231118
 - Replace extract-xiso with xdvdfs.
 - Remove xbfuse as we now (with info provided by xdvdfs) can directly extract

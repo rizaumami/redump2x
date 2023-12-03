@@ -15,17 +15,18 @@ Get it from the usual place.
 xdvdfs
 
 xdvdfs is an original Xbox DVD Filesystem library and management tool.
-
 Link: https://github.com/antangelo/xdvdfs
 
-Binary included in this bin folder is my personal build to get smaller size:
+The include binary was built from this commit:
+https://github.com/antangelo/xdvdfs/commit/2bbf8f797e8aab71cc8f24b281572a6f05a8c9a2
+
+And why it's smaller than normal build:
 https://github.com/antangelo/xdvdfs/issues/61.
 
-Built from this commit:
-https://github.com/antangelo/xdvdfs/commit/defc8789d4fea86be5f4822a502ec55036e87535
+MD5SUM: 1b290ae7d19d6f744430ae2513c7429f
 
-MD5SUM: 30e2562d8fc23bc7161c082af5c2c130
-
-You can also get xdvdfs binary from its release page or by self build:
+You can also get xdvdfs binary from its release page or by build it yourself:
   sudo apt install cargo
+  git clone https://github.com/antangelo/xdvdfs
+  cd xdvdfs
   cargo build --release

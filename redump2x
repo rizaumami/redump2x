@@ -82,7 +82,7 @@ UPDATE=false
 add_artworks() {
   # Artwork for UnleashX dashboard.
   if [[ -f $ARTWORKS ]]; then
-    mapfile -t ICON < <(7z l "$ARTWORKS" -slt | grep -oP "(?<=Path = ${1}).*?(?=$)")
+    mapfile -t ICON < <(7z l -slt "$ARTWORKS" | grep -oP "(?<=Path = ${1}).*?(?=$)")
     if [[ ${#ICON[@]} -eq 0 ]]; then
       print_w 'No artwork found.'
     else
@@ -594,9 +594,9 @@ get_title() {
     ["5655000A"]="Metal Arms: Glitch in the System"
     ["58490001"]="Metal Dungeon"
     ["4B4E0007"]="Metal Gear Solid 2: Substance"
-    ["53400"]="Metal Slug 3"
+    ["534E0002"]="Metal Slug 3"
     ["53400000"]="Metal Slug 4"
-    ["53400000000"]="Metal Slug 5"
+    ["534E0008"]="Metal Slug 5"
     ["46530006"]="Metal Wolf Chaos"
     ["44580001"]="Miami Vice"
     ["4947001C"]="Micro Machines"
@@ -1144,7 +1144,7 @@ get_title() {
   else
     # Use redump's filename as xiso's filename.
     TITLE="${2##*/}"
-    TITLE="${TITLE%.*}"
+    TITLE="${TITLE%%(*}"
   fi
   # FATX only support characters below (include space):
   # ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&'()-.@[]^_`{}~
@@ -1177,10 +1177,10 @@ get_xbe() {
   XBEBIN="${TMPDIR}/default.xbe"
   # Extract default.xbe
   DATALOC=$("$HERE/bin/xdvdfs" info "$1" /default.xbe | grep -oP '(?<=Sector ).*?(?= bytes)')
-  if $REDUMP; then
+  if [[ $XTYPE == 'redump' ]]; then
     # Redump image has a video partition as big as 387 MB or 405798912 Bytes (1024*1024*387).
     dd if="$XISOIN" of="$XBEBIN" skip="$(((${DATALOC%% *}*2048)+405798912))" count="${DATALOC##*\(}" iflag=skip_bytes,count_bytes status=none
-  else
+  elif [[ $XTYPE == 'xiso' ]]; then
     dd if="$XISOIN" of="$XBEBIN" skip="$((${DATALOC%% *}*2048))" count="${DATALOC##*\(}" iflag=skip_bytes,count_bytes status=none
   fi
 
@@ -1407,14 +1407,30 @@ fi
 for (( n = 0; n < ${#XISO[@]}; n++ )) do
   XISOIN="${XISO[n]}"
 
-  ! $UPDATE && ! ${JOIN:-false} && print_g "Processing ${XISOIN}."
+  if ${JOIN:-false}; then
+    OUTPUT="${XISOIN:0:(-6)}"
+    if [[ ${XISO[n]:(-6)} == '.0.iso' ]] && [[ -f ${OUTPUT}.1.iso ]]; then
+      printf '\e[32m\r:: %s\n\e[m' "Concatenating ${OUTPUT}*.iso"
+      cat "${OUTPUT}".{0..1}.iso > "${OUTPUT}.iso"
+      rm "${OUTPUT}".{0..1}.iso
+    fi
+    continue
+  fi
+
+  ! $UPDATE && ! ${JOIN:-false} && print_g "Processing ${XISOIN}"
 
   # XSPLIT is to make sure nosplit works even when -b is invoked.
   [[ $SPLIT -gt 1 ]] && XSPLIT=true || XSPLIT=false
 
-  # Is it an archive?
-  if ! $UPDATE && [[ "${XISOIN##*.}" != 'iso' ]]; then
-    mapfile -t ARCHISO < <(7z l "${XISO[n]}" -slt | grep -oP '(?<=Path = ).*?(?=.iso).iso')
+  # Will waiting for password here if archive has encrypted headers or files.
+  # Won't fix. Because:
+  # 1. Most redump is archived in unencrypted zip
+  # 2. Will make script more complicated
+  # Solution:
+  # 1. Create a folder spceial for redump input. Don't mix with another files.
+  # 2. Use -p to supply a password for encrypted archive
+  if ! $UPDATE && [[ "${XISOIN:(-4)}" != '.iso' ]]; then
+    mapfile -t ARCHISO < <(7z l -slt "${XISO[n]}" | grep -oP '(?<=Path = ).*?(?=\.iso).iso')
     if [[ ${#ARCHISO[@]} -eq 1 ]]; then
       XISOIN="$TMPDIR/${ARCHISO[0]}"
     else
@@ -1427,7 +1443,7 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     fi
     $ATTACH && OUTDIR="$TMPDIR" || OUTDIR="$OUTPUT"
     # Is the archive encrypted?
-    if [[ $(7z l "${XISO[n]}" -slt | grep -oP '(?<=Encrypted = ).*?(?=$)') = '+' ]]; then
+    if [[ $(7z l -slt "${XISO[n]}" | grep -oP '(?<=Encrypted = ).*?(?=$)') = '+' ]]; then
       if ${PASS:-false}; then
         7z x -bso0 -p"$PASSWORD" -o"$OUTDIR" "${XISO[n]}"
       else
@@ -1442,10 +1458,11 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
 
   # Xiso contains MICROSOFT*XBOX*MEDIA string in it.
   if [[ "$(xxd -p -c20 -l 0x14 -s 0x18310000 "$XISOIN")" = '4d4943524f534f46542a58424f582a4d45444941' ]]; then
-    REDUMP=true
+    XTYPE='redump'
   elif [[ "$(xxd -p -c20 -l 0x14 -s 0x10000 "$XISOIN")" = '4d4943524f534f46542a58424f582a4d45444941' ]]; then
-    REDUMP=false
+    XTYPE='xiso'
   else
+    XTYPE='none'
 		print_w "${XISOIN}: This does not appear to be a valid xbox iso image."
 		continue
   fi
@@ -1473,20 +1490,10 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     continue
   fi
 
-  if ${JOIN:-false}; then
-    OUTPUT="${XISOIN%/*}"
-    if [[ ${XISO[n]:(-6):2} == .0 ]] && [[ -f ${XISO[n]:0:(-6)}.1.iso ]]; then
-      printf '\e[32m\r:: %s\n\e[m' "Concatenating ${OUTPUT}/*.iso"
-      cat "${XISO[n]:0:(-6)}".{0..1}.iso > "$OUTPUT/${TITLE[1]}.iso"
-      rm "${XISO[n]:0:(-6)}".{0..1}.iso
-    fi
-    continue
-  fi
-
   XISOUT="$OUTPUT/${TITLE[0]}/${TITLE[1]}.iso"
   mkdir -p "${XISOUT%/*}"
 
-  if $REDUMP; then
+  if [[ $XTYPE != 'none' ]]; then
     if [[ ${EXISO##*/} = 'xdvdfs' ]]; then
       print 'Repacking redump.'
       "$EXISO" pack "$XISOIN" "$XISOUT" 1>"$TMPDIR"/repack.log
@@ -1523,6 +1530,8 @@ for (( n = 0; n < ${#XISO[@]}; n++ )) do
     XF=( -name "${TITLE[1]:0:35}.?.iso" )
   fi
   find "${XISOUT%/*}" -maxdepth 1 -type f "${XF[@]}" -printf '\t └─ %s - %P\n' | numfmt --field=2 --padding=+4 --to=si
+
+  rm "$TMPDIR"/*.iso &>/dev/null || continue
 done
 
 rm -r "$TMPDIR"
