@@ -3,7 +3,11 @@
 
 # How to
 
-## 1. Build
+## 1. Download Releases
+
+Go to https://github.com/antangelo/xdvdfs/releases/latest to download the latest relese.
+
+## 2. Build
 
 ```sh
 sudo apt install cargo
@@ -24,7 +28,7 @@ codegen-units = 1
 panic = "abort"
 ```
 
-### 2. Install from [crates.io](https://crates.io/)
+### 3. Install from [crates.io](https://crates.io/)
 
 ```sh
 sudo apt install cargo

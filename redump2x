@@ -37,7 +37,7 @@ IFS=$'\n\t'
 # - CISO support
 
 # Get the current working directory.
-HERE=$(dirname "$(readlink -f "${0}")")
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # Checking dependencies:
 # 1.  xdvdfs: https://github.com/antangelo/xdvdfs
@@ -46,7 +46,7 @@ HERE=$(dirname "$(readlink -f "${0}")")
 # 3.  attach.xbe
 #     Get it from driveimageutils-v1.0.1 package from "the usual place".
 declare -a DEPS=(7z 'attach.xbe' dd grep xdvdfs xxd)
-for ((NUM=${#DEPS[@]},i=0; i<NUM;i++)); do
+for ((NUM=${#DEPS[@]}, i=0; i<NUM; i++)); do
   if command -v "${DEPS[i]}" &>/dev/null || [[ -f $HERE/bin/${DEPS[i]} ]]; then
     unset -v 'DEPS[i]'
   fi
@@ -71,6 +71,7 @@ INPUT="$HOME"
 OUTPUT="$HOME"
 # Split the output file.
 SPLIT=0
+SPLITTED=false
 # Script will extract input archive into this temporary directory.
 # Pay attention if you mount tmpfs on /tmp.
 TMPDIR=$(mktemp -d)
@@ -80,8 +81,10 @@ UPDATE=false
 # FUNCTIONS --------------------------------------------------------------------
 
 add_artworks() {
+  if [[ -z $1 ]]; then
+    print_w 'Canceling add_artworks: missing Title ID.'
   # Artwork for UnleashX dashboard.
-  if [[ -f $ARTWORKS ]]; then
+  elif [[ -f $ARTWORKS ]]; then
     mapfile -t ICON < <(7z l -slt "$ARTWORKS" | grep -oP "(?<=Path = ${1}).*?(?=$)")
     if [[ ${#ICON[@]} -eq 0 ]]; then
       print_w 'No artwork found.'
@@ -424,6 +427,7 @@ get_title() {
     ["54540089"]="Ford vs. Chevy"
     ["49470074"]="Forgotten Realms: Demon Stone"
     ["4D53006E"]="Forza Motorsport"
+    ["584C8014"]="Forza Motorsport"
     ["48450004"]="Frankie Dettori Racing"
     ["4D570007"]="Freaky Flyers"
     ["4541002E"]="Freedom Fighters"
@@ -818,7 +822,7 @@ get_title() {
     ["48500005"]="Rugby Challenge 2006"
     ["48450001"]="Rugby League"
     ["48450005"]="Rugby League 2"
-    ["5340000"]="Samurai Shodown V"
+    ["534E0004"]="Samurai Shodown V"
     ["4B4F0006"]="Samurai Warriors"
     ["5454007A"]="Scaler"
     ["4C530002"]="SCAR : Squadra Corse Alfa Romeo"
@@ -920,7 +924,7 @@ get_title() {
     ["53450038"]="Super Monkey Ball Deluxe"
     ["454100A0"]="Superman Returns"
     ["49470016"]="Superman: The Man of Steel"
-    ["5340"]="SVC Chaos: SNK vs. Capcom"
+    ["534E0001"]="SVC Chaos: SNK vs. Capcom"
     ["56560025"]="SWAT: Global Strike Team"
     ["41430010"]="SX Superstar"
     ["4D490006"]="Syberia"
@@ -971,10 +975,10 @@ get_title() {
     ["54510028"]="The Incredibles"
     ["545100F6"]="The Incredibles: Rise of the Underminer"
     ["4553000E"]="The Italian Job"
-    ["534000000"]="The King of Fighters 2002"
-    ["534000"]="The King of Fighters 2003"
+    ["534E0006"]="The King of Fighters 2002"
+    ["534E0003"]="The King of Fighters 2003"
     ["534E000A"]="The King of Fighters Neowave"
-    ["5340000000"]="The King of Fighters: Maximum Impact: Maniax"
+    ["534E0007"]="The King of Fighters: Maximum Impact: Maniax"
     ["5655004A"]="The Legend of Spyro: A New Beginning"
     ["56550004"]="The Lord of the Rings: The Fellowship of the Ring"
     ["4541003E"]="The Lord of the Rings: The Return of the King"
@@ -1137,13 +1141,18 @@ get_title() {
     ["5454008C"]="Zathura"
     ["53540001"]="ZillerNet"
   )
-  local CN FATXCHARS
+  local CN FATXCHARS DIRNAME SINGLE
   # Get game's Title Name based on its Title ID
-  if [[ -v 'TITLENAME[$1]' ]]; then
+  if [[ -v TITLENAME[$1] ]]; then
     TITLE="${TITLENAME[$1]}"
   else
+    TITLE="$2"
     # Use redump's filename as xiso's filename.
-    TITLE="${2##*/}"
+    if [[ ${2:(-6)} == '.0.iso' ]] && [[ -f ${2:0:(-6)}.1.iso ]]; then
+      TITLE="${2:0:(-6)}"
+    fi
+    TITLE="${TITLE##*/}"
+    TITLE="${TITLE%.*}"
     TITLE="${TITLE%%(*}"
   fi
   # FATX only support characters below (include space):
@@ -1163,27 +1172,21 @@ get_title() {
       fi
     done
   fi
-  # Remove trailing whitespace.
-  shopt -s extglob
-  CN="${CN%%+([[:space:]])}"
-
+  DIRNAME="${CN:0:41}"
+  SINGLE="${CN:0:37}"
+  SPLITTED="${CN:0:35}"
   # FATX only support 42 characters for filename (that include spaces).
   # [0]: 42 chars for dir, [1]: 38 chars for single xiso, [2]: 36 chars for splitted xisos.
-  TITLE=( "${CN:0:41}" "${CN:0:37}" "${CN:0:35}" )
+  # Remove trailing whitespace.
+  shopt -s extglob
+  TITLE=( "${DIRNAME%%+([[:space:]])}" "${SINGLE%%+([[:space:]])}" "${SPLITTED%%+([[:space:]])}" )
 }
 
 get_xbe() {
-  local BASE CERT DATALOC RTID XBEBIN
+  local BASE CERT RTID XBEBIN
   XBEBIN="${TMPDIR}/default.xbe"
   # Extract default.xbe
-  DATALOC=$("$HERE/bin/xdvdfs" info "$1" /default.xbe | grep -oP '(?<=Sector ).*?(?= bytes)')
-  if [[ $XTYPE == 'redump' ]]; then
-    # Redump image has a video partition as big as 387 MB or 405798912 Bytes (1024*1024*387).
-    dd if="$XISOIN" of="$XBEBIN" skip="$(((${DATALOC%% *}*2048)+405798912))" count="${DATALOC##*\(}" iflag=skip_bytes,count_bytes status=none
-  elif [[ $XTYPE == 'xiso' ]]; then
-    dd if="$XISOIN" of="$XBEBIN" skip="$((${DATALOC%% *}*2048))" count="${DATALOC##*\(}" iflag=skip_bytes,count_bytes status=none
-  fi
-
+  "$EXISO" copy-out "$XISOIN" default.xbe "$XBEBIN"
   # Get base address.
   BASE="$(xxd -e -l 4 -s 0x104 "$XBEBIN")"
   BASE="0x${BASE:10:8}"
@@ -1202,7 +1205,7 @@ install_artworks() {
   7z x -bso0 "$1" -o"$TMPDIR"
   mapfile -t COVER < <(find "$TMPDIR/$ARTDIR" -size +1k -type f -name '_resources.zip')
 
-  for ((NUM=${#COVER[@]},i=0; i<NUM;i++)); do
+  for ((NUM=${#COVER[@]}, i=0; i<NUM; i++)); do
     if [[ -f ${COVER[i]%/*}/detials.txt ]]; then
       TID=$(<"${COVER[i]%/*}/detials.txt")
       # Remove N/A string if title doesn't have an ID.
@@ -1227,7 +1230,7 @@ patch_attach() {
   XBEPATCH="${ATTACHER}.hexpatch"
   # Adjust offset from game's default/game.xbe to attach.xbe's offset.
   SHIFT=$((0x00010178-XBE[2]))
-  print 'Patching attacher.'
+  echo ':: Patching attacher.'
   # Create certificate patch.
   xxd -c1 -l 464 -s $((XBE[2]-XBE[1])) -o "$SHIFT" "$ATTACHER" > "$XBEPATCH"
   # Create certificate version patch.

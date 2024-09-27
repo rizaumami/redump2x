@@ -1,3 +1,11 @@
+v1.4 - 20240928
+- New xdvdfs build: Version 0.8.2 includes a new copy-out command that we use to
+  replace the default get xbe function.
+- Fixed some typos in the Title ID and Game ID arrays.
+- Updating the game directory would fail if default.xbe is sliced between split
+  xISOs. Therefore, we check for the Title ID, and if it's empty, we will:
+  (1) skip adding artworks, and (2) use the filename as the game's title.
+
 v1.3.1 - 20231203
 - New xdvdfs build that fix https://github.com/antangelo/xdvdfs/issues/64
 - Fix Metal Slug entry in TITLENAME array

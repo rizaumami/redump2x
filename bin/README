@@ -4,7 +4,7 @@ This is Virtual disc attacher by rmenhal.
 If combined with NKPatcher or Cerbios this utility will enabled us to boot XISOs
 directly from ogxbox's disk.
 
-MD5SUM: e658735e0a533d2a9f5dfb60b8334fc7
+SHA1: c120ae196df1767adfb9f49698492813eb9a5938
 
 Taken from driveimageutils-v1.0.1 package.
 The license is GPL, so I guess can redistribute the binary with this repo.
@@ -17,13 +17,10 @@ xdvdfs
 xdvdfs is an original Xbox DVD Filesystem library and management tool.
 Link: https://github.com/antangelo/xdvdfs
 
-The include binary was built from this commit:
-https://github.com/antangelo/xdvdfs/commit/2bbf8f797e8aab71cc8f24b281572a6f05a8c9a2
-
-And why it's smaller than normal build:
+And why the included binary is smaller than the official build:
 https://github.com/antangelo/xdvdfs/issues/61.
 
-MD5SUM: 1b290ae7d19d6f744430ae2513c7429f
+SHA1: de39dfeb5008dc970284bd5f5168471e8ba0a624
 
 You can also get xdvdfs binary from its release page or by build it yourself:
   sudo apt install cargo
